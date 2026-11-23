@@ -4,6 +4,12 @@
 -- Single-file Roblox LocalScript / Executor script
 --==================================================
 
+if type(info) == "function" then
+    pcall(info, "Initazing")
+else
+    print("Initazing")
+end
+
 wait(15)
 
 --==================================================
@@ -72,7 +78,35 @@ local Defaults = {
     Particles = true,
     Lights = true,
     BlackScreen = false,
-    AutoEnable = true
+    AutoEnable = true,
+    Mode = "CUSTOM"
+}
+
+local Presets = {
+    BALANCED = {
+        FPS = 30,
+        Grayscale = false,
+        Shadows = true,
+        Particles = true,
+        Lights = false,
+        BlackScreen = false
+    },
+    PERFORMANCE = {
+        FPS = 60,
+        Grayscale = true,
+        Shadows = true,
+        Particles = true,
+        Lights = true,
+        BlackScreen = false
+    },
+    ULTRA_LOW = {
+        FPS = 15,
+        Grayscale = true,
+        Shadows = true,
+        Particles = true,
+        Lights = true,
+        BlackScreen = false
+    }
 }
 
 local Config = {}
@@ -145,9 +179,14 @@ local function LoadConfig()
     end
 
     for key, default in pairs(Defaults) do
-        if key ~= "FPS" and type(data[key]) == "boolean" then
+        if key ~= "FPS" and key ~= "Mode" and type(data[key]) == "boolean" then
             Config[key] = data[key]
         end
+    end
+
+    if type(data.Mode) == "string"
+    and (Presets[data.Mode] or data.Mode == "CUSTOM") then
+        Config.Mode = data.Mode
     end
 end
 
@@ -415,8 +454,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.fromOffset(330, 485)
-Main.Position = UDim2.new(0.5, -165, 0.5, -242.5)
+Main.Size = UDim2.fromOffset(330, 510)
+Main.Position = UDim2.new(0.5, -165, 0.5, -255)
 Main.BackgroundColor3 = Color3.fromRGB(23, 23, 28)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
@@ -519,6 +558,39 @@ EnableButton.MouseButton1Click:Connect(function()
 end)
 
 --==================================================
+-- MODE PRESETS
+--==================================================
+
+local ModeButtons = {}
+local ModeNames = {
+    {"BALANCED", "BALANCED"},
+    {"PERFORMANCE", "PERFORMANCE"},
+    {"ULTRA LOW", "ULTRA_LOW"}
+}
+
+local function UpdateModeUI()
+    for mode, button in pairs(ModeButtons) do
+        local selected = Config.Mode == mode
+        button.BackgroundColor3 = selected
+            and Color3.fromRGB(55, 105, 75)
+            or Color3.fromRGB(43, 43, 52)
+    end
+end
+
+for index, item in ipairs(ModeNames) do
+    local button = MakeButton(
+        Main,
+        item[1],
+        UDim2.new(0, 15 + (index - 1) * 101, 0, 188),
+        UDim2.fromOffset(96, 28)
+    )
+    button.TextSize = 10
+    ModeButtons[item[2]] = button
+end
+
+UpdateModeUI()
+
+--==================================================
 -- FPS SLIDER
 --==================================================
 
@@ -578,6 +650,8 @@ local function SetFPSFromX(x)
     local value = math.floor((5 + alpha * 115) / 5 + 0.5) * 5
 
     Config.FPS = math.clamp(value, 5, 120)
+    Config.Mode = "CUSTOM"
+    UpdateModeUI()
 
     local progress = (Config.FPS - 5) / 115
 
@@ -641,6 +715,8 @@ local function MakeToggle(name, key, y)
 
     button.MouseButton1Click:Connect(function()
         Config[key] = not Config[key]
+        Config.Mode = "CUSTOM"
+        UpdateModeUI()
 
         Update()
 
@@ -658,11 +734,11 @@ local function MakeToggle(name, key, y)
     return Update
 end
 
-local UpdateGrayscale = MakeToggle("GRAYSCALE", "Grayscale", 190)
-local UpdateShadows = MakeToggle("DISABLE SHADOWS", "Shadows", 228)
-local UpdateParticles = MakeToggle("DISABLE PARTICLES", "Particles", 266)
-local UpdateLights = MakeToggle("DISABLE LIGHTS", "Lights", 304)
-local UpdateBlackScreen = MakeToggle("BLACK SCREEN", "BlackScreen", 342)
+local UpdateGrayscale = MakeToggle("GRAYSCALE", "Grayscale", 224)
+local UpdateShadows = MakeToggle("DISABLE SHADOWS", "Shadows", 262)
+local UpdateParticles = MakeToggle("DISABLE PARTICLES", "Particles", 300)
+local UpdateLights = MakeToggle("DISABLE LIGHTS", "Lights", 338)
+local UpdateBlackScreen = MakeToggle("BLACK SCREEN", "BlackScreen", 376)
 
 --==================================================
 -- CONFIG BUTTONS
@@ -685,6 +761,7 @@ local ResetConfigButton = MakeButton(
 local function UpdateConfigUI()
     FPSValue.Text = tostring(Config.FPS)
     SliderFill.Size = UDim2.new((Config.FPS - 5) / 115, 0, 1, 0)
+    UpdateModeUI()
 
     UpdateGrayscale()
     UpdateShadows()
@@ -698,6 +775,24 @@ local function UpdateConfigUI()
         ApplyBlackScreen()
     end
 end
+
+for mode, button in pairs(ModeButtons) do
+    button.MouseButton1Click:Connect(function()
+        local preset = Presets[mode]
+
+        for key, value in pairs(preset) do
+            Config[key] = value
+        end
+
+        Config.Mode = mode
+        UpdateConfigUI()
+        AutoSave()
+        print("[LowResource] Mode selected:", mode)
+    end)
+end
+
+LoadConfigButton.Position = UDim2.fromOffset(15, 414)
+ResetConfigButton.Position = UDim2.new(0.5, 5, 0, 414)
 
 LoadConfigButton.MouseButton1Click:Connect(function()
     LoadConfig()
@@ -718,7 +813,7 @@ end)
 MakeLabel(
     Main,
     "CONFIG AUTO-SAVES WHEN SETTINGS CHANGE",
-    UDim2.fromOffset(15, 428),
+    UDim2.fromOffset(15, 452),
     UDim2.new(1, -30, 0, 18),
     9
 ).TextColor3 = Color3.fromRGB(120, 220, 150)
@@ -726,7 +821,7 @@ MakeLabel(
 MakeLabel(
     Main,
     "F: Toggle optimizer     T: Hide / Show UI",
-    UDim2.fromOffset(15, 450),
+    UDim2.fromOffset(15, 476),
     UDim2.new(1, -30, 0, 20),
     10
 ).TextColor3 = Color3.fromRGB(145, 145, 155)
