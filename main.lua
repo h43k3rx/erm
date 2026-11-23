@@ -4,6 +4,8 @@
 -- Single-file Roblox LocalScript / Executor script
 --==================================================
 
+task.wait(15)
+
 --==================================================
 -- AUTO RUN + RE-QUEUE AFTER EVERY TELEPORT
 --==================================================
@@ -413,8 +415,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.fromOffset(330, 445)
-Main.Position = UDim2.new(0.5, -165, 0.5, -222.5)
+Main.Size = UDim2.fromOffset(330, 485)
+Main.Position = UDim2.new(0.5, -165, 0.5, -242.5)
 Main.BackgroundColor3 = Color3.fromRGB(23, 23, 28)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
@@ -663,21 +665,68 @@ local UpdateLights = MakeToggle("DISABLE LIGHTS", "Lights", 304)
 local UpdateBlackScreen = MakeToggle("BLACK SCREEN", "BlackScreen", 342)
 
 --==================================================
--- AUTO SAVE INDICATOR
+-- CONFIG BUTTONS
 --==================================================
+
+local LoadConfigButton = MakeButton(
+    Main,
+    "LOAD CONFIG",
+    UDim2.fromOffset(15, 390),
+    UDim2.new(0.5, -20, 0, 30)
+)
+
+local ResetConfigButton = MakeButton(
+    Main,
+    "RESET CONFIG",
+    UDim2.new(0.5, 5, 0, 390),
+    UDim2.new(0.5, -20, 0, 30)
+)
+
+local function UpdateConfigUI()
+    FPSValue.Text = tostring(Config.FPS)
+    SliderFill.Size = UDim2.new((Config.FPS - 5) / 115, 0, 1, 0)
+
+    UpdateGrayscale()
+    UpdateShadows()
+    UpdateParticles()
+    UpdateLights()
+    UpdateBlackScreen()
+
+    if Enabled then
+        Reapply()
+    else
+        ApplyBlackScreen()
+    end
+end
+
+LoadConfigButton.MouseButton1Click:Connect(function()
+    LoadConfig()
+    UpdateConfigUI()
+    print("[LowResource] Config loaded.")
+end)
+
+ResetConfigButton.MouseButton1Click:Connect(function()
+    for key, value in pairs(Defaults) do
+        Config[key] = value
+    end
+
+    UpdateConfigUI()
+    AutoSave()
+    print("[LowResource] Config reset to defaults.")
+end)
 
 MakeLabel(
     Main,
-    "CONFIG: AUTO SAVE ENABLED",
-    UDim2.fromOffset(15, 395),
-    UDim2.new(1, -30, 0, 20),
-    10
+    "CONFIG AUTO-SAVES WHEN SETTINGS CHANGE",
+    UDim2.fromOffset(15, 428),
+    UDim2.new(1, -30, 0, 18),
+    9
 ).TextColor3 = Color3.fromRGB(120, 220, 150)
 
 MakeLabel(
     Main,
     "F: Toggle optimizer     T: Hide / Show UI",
-    UDim2.fromOffset(15, 415),
+    UDim2.fromOffset(15, 450),
     UDim2.new(1, -30, 0, 20),
     10
 ).TextColor3 = Color3.fromRGB(145, 145, 155)
