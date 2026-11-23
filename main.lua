@@ -4,7 +4,7 @@
 -- Single-file Roblox LocalScript / Executor script
 --==================================================
 
-task.wait(15)
+wait(15)
 
 --==================================================
 -- AUTO RUN + RE-QUEUE AFTER EVERY TELEPORT
