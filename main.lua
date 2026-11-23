@@ -24,7 +24,7 @@ end
 
 local function WriteLoadingLine(line, fallbackPrint)
     if type(rconsoleprint) == "function" then
-        pcall(rconsoleprint, "\\r" .. line)
+        pcall(rconsoleprint, "\r" .. line)
     elseif fallbackPrint then
         print(line)
     end
@@ -33,7 +33,7 @@ end
 -- Brief loading identifier, then a 15-second progress display.
 local loadingToken = RandomLoadingText(12)
 if type(rconsoleprint) == "function" then
-    pcall(rconsoleprint, loadingToken .. "\\n")
+    pcall(rconsoleprint, loadingToken .. "\n")
 else
     print(loadingToken)
 end
@@ -71,7 +71,7 @@ while true do
 end
 
 if type(rconsoleprint) == "function" then
-    pcall(rconsoleprint, "\\n")
+    pcall(rconsoleprint, "\n")
 else
     print("Script Initializing: [" .. string.rep("|", 32) .. "] 100%")
 end
