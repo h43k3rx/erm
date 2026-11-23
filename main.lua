@@ -5,12 +5,76 @@
 --==================================================
 
 if type(info) == "function" then
-    pcall(info, "Initazing")
+    pcall(info, "Initializing")
 else
-    print("Initazing")
+    print("Initializing")
 end
 
-wait(15)
+local function RandomLoadingText(length)
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local result = {}
+
+    for i = 1, length do
+        local index = math.random(1, #chars)
+        result[i] = string.sub(chars, index, index)
+    end
+
+    return table.concat(result)
+end
+
+local function WriteLoadingLine(line, fallbackPrint)
+    if type(rconsoleprint) == "function" then
+        pcall(rconsoleprint, "\\r" .. line)
+    elseif fallbackPrint then
+        print(line)
+    end
+end
+
+-- Brief loading identifier, then a 15-second progress display.
+local loadingToken = RandomLoadingText(12)
+if type(rconsoleprint) == "function" then
+    pcall(rconsoleprint, loadingToken .. "\\n")
+else
+    print(loadingToken)
+end
+wait(0.1)
+
+local loadingDuration = 14.9
+local loadingStart = os.clock()
+local lastFallbackUpdate = -1
+
+while true do
+    local elapsed = os.clock() - loadingStart
+    local progress = math.clamp(elapsed / loadingDuration, 0, 1)
+    local percent = math.floor(progress * 100)
+    local barWidth = 32
+    local filled = math.floor(progress * barWidth)
+    local bar = string.rep("|", filled) .. string.rep("=", barWidth - filled)
+    local line = string.format("Script Initializing: [%s] %d%%", bar, percent)
+
+    local fallbackPrint = false
+    if type(rconsoleprint) ~= "function" then
+        local second = math.floor(elapsed)
+        fallbackPrint = second > lastFallbackUpdate
+        if fallbackPrint then
+            lastFallbackUpdate = second
+        end
+    end
+
+    WriteLoadingLine(line, fallbackPrint)
+
+    if progress >= 1 then
+        break
+    end
+
+    wait(0.1)
+end
+
+if type(rconsoleprint) == "function" then
+    pcall(rconsoleprint, "\\n")
+else
+    print("Script Initializing: [" .. string.rep("|", 32) .. "] 100%")
+end
 
 --==================================================
 -- AUTO RUN + RE-QUEUE AFTER EVERY TELEPORT
