@@ -50,7 +50,7 @@ while true do
     local percent = math.floor(progress * 100)
     local filled = math.floor(progress * barWidth)
     local bar = string.rep("|", filled) .. string.rep("=", barWidth - filled)
-    local line = string.format("%s Script Initializing: [%s] %d%%", loadingToken, bar, percent)
+    local line = string.format("Script Initializing: [%s] %d%%", bar, percent)
 
     if hasConsolePrint then
         -- Most executor consoles support carriage-return updates.
