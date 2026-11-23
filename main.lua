@@ -11,34 +11,38 @@
 local SCRIPT_URL =
     "https://raw.githubusercontent.com/h43k3rx/erm/refs/heads/main/main.lua"
 
-local QueueFunction = queue_on_teleport or queueonteleport
+local ExecutorEnv = _G
+pcall(function()
+    if type(getgenv) == "function" then
+        ExecutorEnv = getgenv()
+    end
+end)
+
+local QueueFunction =
+    queue_on_teleport
+    or queueonteleport
+    or (type(ExecutorEnv) == "table" and (
+        ExecutorEnv.queue_on_teleport
+        or ExecutorEnv.queueonteleport
+    ))
 
 if type(QueueFunction) == "function" then
-    local queuedCode = string.format([[
-        repeat
-            task.wait()
-        until game:IsLoaded()
+    local queuedCode = string.format(
+        'repeat task.wait(0.25) until game:IsLoaded(); loadstring(game:HttpGet(%q))()',
+        SCRIPT_URL
+    )
 
-        local success, err = pcall(function()
-            loadstring(game:HttpGet(%q))()
-        end)
-
-        if not success then
-            warn("[LowResource] Auto-run failed:", err)
-        end
-    ]], SCRIPT_URL)
-
-    local success, err = pcall(function()
+    local queued, queueError = pcall(function()
         QueueFunction(queuedCode)
     end)
 
-    if success then
-        print("[LowResource] Queued for next server")
+    if queued then
+        print("[LowResource] Re-queue registered for next server.")
     else
-        warn("[LowResource] Queue failed:", err)
+        warn("[LowResource] Queue registration failed:", queueError)
     end
 else
-    warn("[LowResource] queue_on_teleport is unavailable")
+    warn("[LowResource] No supported queue_on_teleport function found.")
 end
 
 --==================================================
@@ -409,8 +413,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.fromOffset(330, 490)
-Main.Position = UDim2.new(0.5, -165, 0.5, -245)
+Main.Size = UDim2.fromOffset(330, 445)
+Main.Position = UDim2.new(0.5, -165, 0.5, -222.5)
 Main.BackgroundColor3 = Color3.fromRGB(23, 23, 28)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
@@ -659,61 +663,21 @@ local UpdateLights = MakeToggle("DISABLE LIGHTS", "Lights", 304)
 local UpdateBlackScreen = MakeToggle("BLACK SCREEN", "BlackScreen", 342)
 
 --==================================================
--- SAVE / RESET
+-- AUTO SAVE INDICATOR
 --==================================================
 
-local SaveButton = MakeButton(
+MakeLabel(
     Main,
-    "SAVE CONFIG",
+    "CONFIG: AUTO SAVE ENABLED",
     UDim2.fromOffset(15, 395),
-    UDim2.new(0.5, -22, 0, 35)
-)
-
-local ResetButton = MakeButton(
-    Main,
-    "RESET CONFIG",
-    UDim2.new(0.5, 7, 0, 395),
-    UDim2.new(0.5, -22, 0, 35)
-)
-
-SaveButton.MouseButton1Click:Connect(function()
-    local success = SaveConfig()
-
-    SaveButton.Text = success and "SAVED!" or "SAVE FAILED"
-
-    task.delay(1, function()
-        if SaveButton.Parent then
-            SaveButton.Text = "SAVE CONFIG"
-        end
-    end)
-end)
-
-ResetButton.MouseButton1Click:Connect(function()
-    for key, value in pairs(Defaults) do
-        Config[key] = value
-    end
-
-    FPSValue.Text = tostring(Config.FPS)
-    SliderFill.Size = UDim2.new((Config.FPS - 5) / 115, 0, 1, 0)
-
-    UpdateGrayscale()
-    UpdateShadows()
-    UpdateParticles()
-    UpdateLights()
-    UpdateBlackScreen()
-
-    if Enabled then
-        Reapply()
-    end
-
-    ApplyBlackScreen()
-    AutoSave()
-end)
+    UDim2.new(1, -30, 0, 20),
+    10
+).TextColor3 = Color3.fromRGB(120, 220, 150)
 
 MakeLabel(
     Main,
     "F: Toggle optimizer     T: Hide / Show UI",
-    UDim2.fromOffset(15, 447),
+    UDim2.fromOffset(15, 415),
     UDim2.new(1, -30, 0, 20),
     10
 ).TextColor3 = Color3.fromRGB(145, 145, 155)
