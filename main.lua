@@ -22,58 +22,61 @@ local function RandomLoadingText(length)
     return table.concat(result)
 end
 
-local function WriteLoadingLine(line, fallbackPrint)
-    if type(rconsoleprint) == "function" then
-        pcall(rconsoleprint, "\r" .. line)
-    elseif fallbackPrint then
-        print(line)
+local function SafeRconsolePrint(text)
+    if type(rconsoleprint) ~= "function" then
+        return false
     end
+
+    local ok = pcall(rconsoleprint, text)
+    return ok
 end
 
--- Brief loading identifier, then a 15-second progress display.
+-- Keep the random identifier and progress bar on the SAME console line.
 local loadingToken = RandomLoadingText(12)
-if type(rconsoleprint) == "function" then
-    pcall(rconsoleprint, loadingToken .. "\n")
-else
-    print(loadingToken)
-end
-wait(0.1)
+local hasConsolePrint = SafeRconsolePrint(loadingToken)
 
-local loadingDuration = 14.9
+local loadingDuration = 15
 local loadingStart = os.clock()
 local lastFallbackUpdate = -1
+local barWidth = 32
+
+if hasConsolePrint then
+    wait(0.1)
+end
 
 while true do
     local elapsed = os.clock() - loadingStart
     local progress = math.clamp(elapsed / loadingDuration, 0, 1)
     local percent = math.floor(progress * 100)
-    local barWidth = 32
     local filled = math.floor(progress * barWidth)
     local bar = string.rep("|", filled) .. string.rep("=", barWidth - filled)
-    local line = string.format("Script Initializing: [%s] %d%%", bar, percent)
+    local line = string.format("%s Script Initializing: [%s] %d%%", loadingToken, bar, percent)
 
-    local fallbackPrint = false
-    if type(rconsoleprint) ~= "function" then
+    if hasConsolePrint then
+        -- Most executor consoles support carriage-return updates.
+        -- The color tags are supported by common rconsole implementations.
+        if progress >= 1 then
+            SafeRconsolePrint("\r@@GREEN@@" .. line .. "@@WHITE@@\n")
+        else
+            SafeRconsolePrint("\r" .. line)
+        end
+    else
+        -- print() always starts a new line, so only print once as a fallback.
+        -- This avoids splitting the token and progress display across lines.
         local second = math.floor(elapsed)
-        fallbackPrint = second > lastFallbackUpdate
-        if fallbackPrint then
+        if second > lastFallbackUpdate then
             lastFallbackUpdate = second
         end
+        if progress >= 1 then
+            print(line)
+        end
     end
-
-    WriteLoadingLine(line, fallbackPrint)
 
     if progress >= 1 then
         break
     end
 
     wait(0.1)
-end
-
-if type(rconsoleprint) == "function" then
-    pcall(rconsoleprint, "\n")
-else
-    print("Script Initializing: [" .. string.rep("|", 32) .. "] 100%")
 end
 
 --==================================================
