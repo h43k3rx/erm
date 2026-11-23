@@ -4,80 +4,131 @@
 -- Single-file Roblox LocalScript / Executor script
 --==================================================
 
-if type(info) == "function" then
-    pcall(info, "Initializing")
-else
-    print("Initializing")
-end
+--==================================================
+-- IN-GAME LOADING SCREEN
+--==================================================
 
-local function RandomLoadingText(length)
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local result = {}
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
-    for i = 1, length do
-        local index = math.random(1, #chars)
-        result[i] = string.sub(chars, index, index)
+local LoadingGui = Instance.new("ScreenGui")
+LoadingGui.Name = "LowResourceLoading"
+LoadingGui.IgnoreGuiInset = true
+LoadingGui.ResetOnSpawn = false
+LoadingGui.DisplayOrder = 2000
+LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local LoadingBackground = Instance.new("Frame")
+LoadingBackground.Size = UDim2.fromScale(1, 1)
+LoadingBackground.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+LoadingBackground.BorderSizePixel = 0
+LoadingBackground.Parent = LoadingGui
+
+local LoadingPanel = Instance.new("Frame")
+LoadingPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingPanel.Position = UDim2.fromScale(0.5, 0.5)
+LoadingPanel.Size = UDim2.fromOffset(360, 142)
+LoadingPanel.BackgroundColor3 = Color3.fromRGB(23, 23, 28)
+LoadingPanel.BorderSizePixel = 0
+LoadingPanel.Parent = LoadingBackground
+
+local LoadingPanelCorner = Instance.new("UICorner")
+LoadingPanelCorner.CornerRadius = UDim.new(0, 12)
+LoadingPanelCorner.Parent = LoadingPanel
+
+local LoadingTitle = Instance.new("TextLabel")
+LoadingTitle.BackgroundTransparency = 1
+LoadingTitle.Position = UDim2.fromOffset(20, 16)
+LoadingTitle.Size = UDim2.new(1, -40, 0, 26)
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.Text = "LOW RESOURCE OPTIMIZER"
+LoadingTitle.TextColor3 = Color3.fromRGB(240, 240, 245)
+LoadingTitle.TextSize = 16
+LoadingTitle.TextXAlignment = Enum.TextXAlignment.Left
+LoadingTitle.Parent = LoadingPanel
+
+local LoadingStatus = Instance.new("TextLabel")
+LoadingStatus.BackgroundTransparency = 1
+LoadingStatus.Position = UDim2.fromOffset(20, 53)
+LoadingStatus.Size = UDim2.new(1, -40, 0, 18)
+LoadingStatus.Font = Enum.Font.Gotham
+LoadingStatus.Text = "INITIALIZING..."
+LoadingStatus.TextColor3 = Color3.fromRGB(165, 165, 175)
+LoadingStatus.TextSize = 11
+LoadingStatus.TextXAlignment = Enum.TextXAlignment.Left
+LoadingStatus.Parent = LoadingPanel
+
+local LoadingBarBackground = Instance.new("Frame")
+LoadingBarBackground.Position = UDim2.fromOffset(20, 84)
+LoadingBarBackground.Size = UDim2.new(1, -40, 0, 9)
+LoadingBarBackground.BackgroundColor3 = Color3.fromRGB(48, 48, 56)
+LoadingBarBackground.BorderSizePixel = 0
+LoadingBarBackground.ClipsDescendants = true
+LoadingBarBackground.Parent = LoadingPanel
+
+local LoadingBarCorner = Instance.new("UICorner")
+LoadingBarCorner.CornerRadius = UDim.new(1, 0)
+LoadingBarCorner.Parent = LoadingBarBackground
+
+local LoadingBarFill = Instance.new("Frame")
+LoadingBarFill.Size = UDim2.new(0, 0, 1, 0)
+LoadingBarFill.BackgroundColor3 = Color3.fromRGB(45, 190, 105)
+LoadingBarFill.BorderSizePixel = 0
+LoadingBarFill.Parent = LoadingBarBackground
+
+local LoadingFillCorner = Instance.new("UICorner")
+LoadingFillCorner.CornerRadius = UDim.new(1, 0)
+LoadingFillCorner.Parent = LoadingBarFill
+
+local LoadingPercent = Instance.new("TextLabel")
+LoadingPercent.BackgroundTransparency = 1
+LoadingPercent.Position = UDim2.fromOffset(20, 101)
+LoadingPercent.Size = UDim2.new(1, -40, 0, 20)
+LoadingPercent.Font = Enum.Font.GothamSemibold
+LoadingPercent.Text = "0%"
+LoadingPercent.TextColor3 = Color3.fromRGB(190, 190, 200)
+LoadingPercent.TextSize = 11
+LoadingPercent.TextXAlignment = Enum.TextXAlignment.Right
+LoadingPercent.Parent = LoadingPanel
+
+local function ParentLoadingGui()
+    local success = pcall(function()
+        LoadingGui.Parent = game:GetService("CoreGui")
+    end)
+
+    if not success or not LoadingGui.Parent then
+        LoadingGui.Parent = PlayerGui
     end
-
-    return table.concat(result)
 end
 
-local function SafeRconsolePrint(text)
-    if type(rconsoleprint) ~= "function" then
-        return false
-    end
+ParentLoadingGui()
 
-    local ok = pcall(rconsoleprint, text)
-    return ok
-end
-
--- Keep the random identifier and progress bar on the SAME console line.
-local loadingToken = RandomLoadingText(12)
-local hasConsolePrint = SafeRconsolePrint(loadingToken)
-
-local loadingDuration = 15
-local loadingStart = os.clock()
-local lastFallbackUpdate = -1
-local barWidth = 32
-
-if hasConsolePrint then
-    wait(0.1)
-end
+local LoadingDuration = 15
+local LoadingStart = os.clock()
 
 while true do
-    local elapsed = os.clock() - loadingStart
-    local progress = math.clamp(elapsed / loadingDuration, 0, 1)
+    local progress = math.clamp((os.clock() - LoadingStart) / LoadingDuration, 0, 1)
     local percent = math.floor(progress * 100)
-    local filled = math.floor(progress * barWidth)
-    local bar = string.rep("|", filled) .. string.rep("=", barWidth - filled)
-    local line = string.format("Script Initializing: [%s] %d%%", bar, percent)
 
-    if hasConsolePrint then
-        -- Most executor consoles support carriage-return updates.
-        -- The color tags are supported by common rconsole implementations.
-        if progress >= 1 then
-            SafeRconsolePrint("\r@@GREEN@@" .. line .. "@@WHITE@@\n")
-        else
-            SafeRconsolePrint("\r" .. line)
-        end
-    else
-        -- print() always starts a new line, so only print once as a fallback.
-        -- This avoids splitting the token and progress display across lines.
-        local second = math.floor(elapsed)
-        if second > lastFallbackUpdate then
-            lastFallbackUpdate = second
-        end
-        if progress >= 1 then
-            print(line)
-        end
-    end
+    LoadingPercent.Text = tostring(percent) .. "%"
+    TweenService:Create(
+        LoadingBarFill,
+        TweenInfo.new(0.12, Enum.EasingStyle.Linear),
+        {Size = UDim2.new(progress, 0, 1, 0)}
+    ):Play()
 
     if progress >= 1 then
         break
     end
 
-    wait(0.1)
+    task.wait(0.1)
 end
+
+LoadingStatus.Text = "READY"
+LoadingStatus.TextColor3 = Color3.fromRGB(75, 220, 130)
+LoadingPercent.TextColor3 = Color3.fromRGB(75, 220, 130)
 
 --==================================================
 -- AUTO RUN + RE-QUEUE AFTER EVERY TELEPORT
@@ -124,15 +175,11 @@ end
 -- ORIGINAL OPTIMIZER
 --==================================================
 
-local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
-
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --==================================================
 -- CONFIG
@@ -949,6 +996,27 @@ end
 
 SetGuiParent(BlackGui)
 SetGuiParent(ScreenGui)
+
+-- Fade the loading screen away to reveal the main optimizer UI.
+task.spawn(function()
+    local fadeInfo = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    for _, object in ipairs(LoadingGui:GetDescendants()) do
+        if object:IsA("Frame") then
+            TweenService:Create(object, fadeInfo, {BackgroundTransparency = 1}):Play()
+        elseif object:IsA("TextLabel") then
+            TweenService:Create(object, fadeInfo, {
+                BackgroundTransparency = 1,
+                TextTransparency = 1
+            }):Play()
+        elseif object:IsA("UIStroke") then
+            TweenService:Create(object, fadeInfo, {Transparency = 1}):Play()
+        end
+    end
+
+    TweenService:Create(LoadingBackground, fadeInfo, {BackgroundTransparency = 1}):Play()
+    task.wait(0.6)
+    LoadingGui:Destroy()
+end)
 
 --==================================================
 -- HOTKEYS
